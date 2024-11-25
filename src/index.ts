@@ -8,6 +8,7 @@ import {
   transpileModule,
   TranspileOptions,
 } from "typescript";
+import { pathToFileURL } from "url";
 
 const transpilerConfig: TranspileOptions = {
   compilerOptions: {
@@ -58,13 +59,17 @@ export function esbuildTsToJson(): Plugin {
             // Transpile TypeScript to JavaScript
             const { outputText } = transpileModule(source, transpilerConfig);
 
-            // Create a new file in memory that can be imported as a module
-            const moduleURI = `data:text/javascript,${encodeURIComponent(
-              outputText
-            )}`;
+            // Write transpiled output to a temporary file
+            const tempOutputFilePath = inputFilePath + ".js";
+            await writeFile(tempOutputFilePath, outputText);
 
-            // Dynamically import the transpiled module
-            const { default: exportedData = {} } = await import(moduleURI);
+            // Dynamically import and execute the transpiled file
+            const transpiledModule = await import(
+              pathToFileURL(tempOutputFilePath).toString()
+            );
+
+            // Get the default export, which should be the resolved config
+            const exportedData = transpiledModule.default;
 
             // Serialize the default export to JSON
             const jsonContent = JSON.stringify(exportedData, null, 2);

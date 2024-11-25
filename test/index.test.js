@@ -4,7 +4,7 @@ import fsPromises from "fs/promises";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import os from "os";
 import path from "path";
-import { esbuildTsToJson } from "../../dist/index.js";
+import { esbuildTsToJson } from "../dist/index.js";
 import expectedOutput from "./manifest.json" assert { type: "json" };
 
 describe("build-single-ts-to-json", () => {
@@ -34,6 +34,7 @@ describe("build-single-ts-to-json", () => {
 
   const helper = async () => {
     const inputFile = path.join(savedDir, "test/e2e/manifest.ts");
+    console.log("🚀 ~ inputFile:", inputFile);
 
     // Run esbuild with the correct entryPoints format
     await build({

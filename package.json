@@ -21,7 +21,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "node --no-warnings --test \"test/**/*.test.js\"",
-    "tag": "git tag v$(node -p \"require('./package.json').version\") && git push --tags"
+    "tag": "git tag v$(node -p \"require('./package.json').version\") && git push --tags",
+    "esbuild": "node esbuildrc.js"
   },
   "keywords": [
     "esbuild",
@@ -33,7 +34,8 @@
     "@types/node": "^22.9.3",
     "esbuild": "^0.24.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "flugin-manifest-config": "github:andreincu/flugin-manifest-config#v1.0.0"
   },
   "peerDependencies": {
     "esbuild": "^0.24.0"
