@@ -1,0 +1,28 @@
+{
+  "name": "esbuild-plugin-ts-to-json",
+  "version": "1.0.0",
+  "description": "A plugin for esbuild to transform TypeScript files to JSON format. Specific for generating manifest.json.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "node --test \"**/*.test.mjs\""
+  },
+  "keywords": [
+    "esbuild",
+    "plugin"
+  ],
+  "author": "Andrei Iancu",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.9.3",
+    "esbuild": "^0.24.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "Manifest",
+  "description": "Test the manifest file",
+  "freeze": true
+}
