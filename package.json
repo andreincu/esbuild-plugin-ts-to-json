@@ -20,7 +20,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "node --no-warnings --test \"test/**/*.test.js\""
+    "test": "node --no-warnings --test \"test/**/*.test.js\"",
+    "tag": "git tag v$(node -p \"require('./package.json').version\") && git push --tags"
   },
   "keywords": [
     "esbuild",
