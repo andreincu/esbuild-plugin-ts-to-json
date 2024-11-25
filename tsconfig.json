@@ -1,15 +1,14 @@
 {
-  "include": ["src", "test/e2e/index.test.mjs", "test/e2e/manifest.ts"],
+  "include": ["src"],
   "exclude": ["**/*.test.ts", "node_modules"],
   "compilerOptions": {
     "module": "ESNext",
     "target": "ESNext",
+    "moduleResolution": "bundler",
     "declaration": true,
     "strict": true,
-    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "resolveJsonModule": true
   }
 }

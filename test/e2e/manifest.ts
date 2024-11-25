@@ -4,8 +4,12 @@ interface Manifest {
   freeze: boolean;
 }
 
-export default {
+function defineManifestConfig(config: Manifest) {
+  return config;
+}
+
+export default defineManifestConfig({
   name: "Manifest",
   description: "Test the manifest file",
   freeze: true,
-} satisfies Manifest;
+});

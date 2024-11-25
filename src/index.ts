@@ -1,5 +1,5 @@
 import { Plugin, PluginBuild } from "esbuild";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, stat, writeFile } from "fs/promises";
 import path from "path";
 import {
   ModuleKind,
@@ -17,74 +17,68 @@ const transpilerConfig: TranspileOptions = {
   },
 };
 
+// Helper function to ensure directory existence and write file
+const writeJsonFile = async (filePath: string, content: string) => {
+  const dir = path.dirname(filePath);
+  await mkdir(dir, { recursive: true });
+  await writeFile(filePath, content);
+};
+
 /**
  * Esbuild plugin to convert TypeScript to JSON format.
- * 
+ *
  * @requires
- * - `entryPoints` is required. only one entry point is supported. entry point format is `{in: string, out: string}`. 
- * - `outdir` is required.
+ * - `entryPoints` (array of strings) is required.
  * - `write` set to false.
  * - `bundle` set to false.
- * 
- * @example 
- * await esbuild.build({
-    entryPoints: [{ in: './src/manifest.ts', out: 'manifest.json' }],
-    outdir: './build',
-    bundle: false, // Avoid bundling for JSON generation
-    write: false,
-    plugins: [esbuildTsToJson()],
-  });
- * 
- *  */
+ * - `outdir` is by default `./build`.
+ */
 export function esbuildTsToJson(): Plugin {
   return {
     name: "esbuild-plugin-ts-to-json",
     setup(build: PluginBuild) {
       build.onEnd(async () => {
-        const { outdir = "./build/manifest.json", entryPoints } =
-          build.initialOptions;
+        const { outdir = "./build", entryPoints } = build.initialOptions;
 
         if (!Array.isArray(entryPoints)) {
-          throw new Error(
-            `entryPoints must be { in: string; out: string; }[] format.`
-          );
+          throw new Error(`entryPoints must be an array of strings.`);
         }
 
-        for (const entryPoint of entryPoints) {
-          if (typeof entryPoint === "string") {
-            throw new Error(`Invalid entry point format: ${entryPoint}`);
+        for (const input of entryPoints) {
+          if (typeof input !== "string") {
+            throw new Error(`Invalid entry point format: ${input}`);
           }
 
           // Read the TypeScript file
-          const { in: input, out: output } = entryPoint;
           const inputFilePath = path.resolve(input);
-          const outputFilePath = path.resolve(outdir + "/" + output);
-
-          const source = await readFile(inputFilePath, "utf8");
-
-          // Transpile TypeScript to JavaScript
-          const { outputText } = transpileModule(source, transpilerConfig);
-
-          // Create a new file in memory that can be imported as a module
-          const moduleURI = `data:text/javascript,${encodeURIComponent(
-            outputText
-          )}`;
-
-          // Dynamically import the transpiled module
-          const { default: exportedData = {} } = await import(moduleURI);
-
-          // Serialize the default export to JSON
-          const jsonContent = JSON.stringify(exportedData, null, 2);
+          const outputFileName = path.parse(input).name + ".json";
+          const outputFilePath = path.resolve(outdir, outputFileName);
 
           try {
-            // ensure the directory exists before writing the file
-            const dir = path.dirname(outputFilePath);
-            await mkdir(dir, { recursive: true });
+            // Check if the input file exists and is readable
+            await stat(inputFilePath); //throw error if doesn't exists
 
-            //   writing the content into the file
-            await writeFile(outputFilePath, jsonContent);
+            // Read the TypeScript file
+            const source = await readFile(inputFilePath, "utf8");
+
+            // Transpile TypeScript to JavaScript
+            const { outputText } = transpileModule(source, transpilerConfig);
+
+            // Create a new file in memory that can be imported as a module
+            const moduleURI = `data:text/javascript,${encodeURIComponent(
+              outputText
+            )}`;
+
+            // Dynamically import the transpiled module
+            const { default: exportedData = {} } = await import(moduleURI);
+
+            // Serialize the default export to JSON
+            const jsonContent = JSON.stringify(exportedData, null, 2);
+
+            // Write JSON file to disk
+            await writeJsonFile(outputFilePath, jsonContent);
           } catch (error) {
-            console.log(error);
+            console.error(`Failed to process ${inputFilePath}:`, error);
           }
         }
       });
