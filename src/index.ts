@@ -17,13 +17,6 @@ const transpilerConfig: TranspileOptions = {
   },
 };
 
-// Helper function to ensure directory existence and write file
-const writeJsonFile = async (filePath: string, content: string) => {
-  const dir = path.dirname(filePath);
-  await mkdir(dir, { recursive: true });
-  await writeFile(filePath, content);
-};
-
 /**
  * Esbuild plugin to convert TypeScript to JSON format.
  *
@@ -44,6 +37,7 @@ export function esbuildTsToJson(): Plugin {
           throw new Error(`entryPoints must be an array of strings.`);
         }
 
+        // TODO: implement lowest common ancestor
         for (const input of entryPoints) {
           if (typeof input !== "string") {
             throw new Error(`Invalid entry point format: ${input}`);
@@ -84,4 +78,11 @@ export function esbuildTsToJson(): Plugin {
       });
     },
   };
+}
+
+// Helper function to ensure directory existence and write file
+async function writeJsonFile(filePath: string, content: string) {
+  const dir = path.dirname(filePath);
+  await mkdir(dir, { recursive: true });
+  await writeFile(filePath, content);
 }
