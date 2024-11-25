@@ -1,5 +1,5 @@
 import { Plugin, PluginBuild } from "esbuild";
-import { mkdir, readFile, stat, writeFile } from "fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "fs/promises";
 import path from "path";
 import {
   ModuleKind,
@@ -48,6 +48,7 @@ export function esbuildTsToJson(): Plugin {
           const inputFilePath = path.resolve(input);
           const outputFileName = path.parse(input).name + ".json";
           const outputFilePath = path.resolve(outdir, outputFileName);
+          const tempOutputFilePath = `${inputFilePath}-${Date.now()}.js`;
 
           try {
             // Check if the input file exists and is readable
@@ -60,16 +61,11 @@ export function esbuildTsToJson(): Plugin {
             const { outputText } = transpileModule(source, transpilerConfig);
 
             // Write transpiled output to a temporary file
-            const tempOutputFilePath = inputFilePath + ".js";
             await writeFile(tempOutputFilePath, outputText);
 
             // Dynamically import and execute the transpiled file
-            const transpiledModule = await import(
-              pathToFileURL(tempOutputFilePath).toString()
-            );
-
-            // Get the default export, which should be the resolved config
-            const exportedData = transpiledModule.default;
+            const fileUrl = pathToFileURL(tempOutputFilePath).toString();
+            const { default: exportedData = {} } = await import(fileUrl);
 
             // Serialize the default export to JSON
             const jsonContent = JSON.stringify(exportedData, null, 2);
@@ -78,6 +74,9 @@ export function esbuildTsToJson(): Plugin {
             await writeJsonFile(outputFilePath, jsonContent);
           } catch (error) {
             console.error(`Failed to process ${inputFilePath}:`, error);
+          } finally {
+            // Ensure the temporary file is deleted
+            await unlink(tempOutputFilePath);
           }
         }
       });
