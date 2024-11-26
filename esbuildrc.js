@@ -6,9 +6,9 @@ import { esbuildTsToJson } from "./dist/index.js";
     const ctx = await context({
       entryPoints: ["./test/manifest.ts"],
       outdir: "./test/out",
-      bundle: false, // Avoid bundling for JSON generation
+      bundle: true,
       write: false,
-      logLevel: "info",
+      format: "esm",
       plugins: [esbuildTsToJson()],
     });
 

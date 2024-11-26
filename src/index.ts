@@ -1,92 +1,62 @@
-import { Plugin, PluginBuild } from "esbuild";
-import { mkdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import { BuildOptions, OutputFile, Plugin, PluginBuild } from "esbuild";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import {
-  ModuleKind,
-  ModuleResolutionKind,
-  ScriptTarget,
-  transpileModule,
-  TranspileOptions,
-} from "typescript";
-import { pathToFileURL } from "url";
-
-const transpilerConfig: TranspileOptions = {
-  compilerOptions: {
-    module: ModuleKind.ESNext,
-    moduleResolution: ModuleResolutionKind.Bundler,
-    target: ScriptTarget.ES2017,
-  },
-};
 
 /**
  * Esbuild plugin to convert TypeScript to JSON format.
- *
- * @requires
- * - `entryPoints` (array of strings) is required.
- * - `write` set to false.
- * - `bundle` set to false.
- * - `outdir` is by default `./build`.
  */
 export function esbuildTsToJson(): Plugin {
   return {
     name: "esbuild-plugin-ts-to-json",
     setup(build: PluginBuild) {
-      build.onEnd(async () => {
-        const { outdir = "./build", entryPoints } = build.initialOptions;
+      build.onEnd(async (result) => {
+        validateBuildOptions(build.initialOptions);
 
-        if (!Array.isArray(entryPoints)) {
-          throw new Error(`entryPoints must be an array of strings.`);
+        if (!result?.outputFiles?.length) {
+          throw new Error("No output files found. Ensure your esbuild config is properly set.");
         }
 
-        // TODO: implement lowest common ancestor
-        for (const input of entryPoints) {
-          if (typeof input !== "string") {
-            throw new Error(`Invalid entry point format: ${input}`);
-          }
-
-          // Read the TypeScript file
-          const inputFilePath = path.resolve(input);
-          const outputFileName = path.parse(input).name + ".json";
-          const outputFilePath = path.resolve(outdir, outputFileName);
-          const tempOutputFilePath = `${inputFilePath}-${Date.now()}.js`;
-
-          try {
-            // Check if the input file exists and is readable
-            await stat(inputFilePath); //throw error if doesn't exists
-
-            // Read the TypeScript file
-            const source = await readFile(inputFilePath, "utf8");
-
-            // Transpile TypeScript to JavaScript
-            const { outputText } = transpileModule(source, transpilerConfig);
-
-            // Write transpiled output to a temporary file
-            await writeFile(tempOutputFilePath, outputText);
-
-            // Dynamically import and execute the transpiled file
-            const fileUrl = pathToFileURL(tempOutputFilePath).toString();
-            const { default: exportedData = {} } = await import(fileUrl);
-
-            // Serialize the default export to JSON
-            const jsonContent = JSON.stringify(exportedData, null, 2);
-
-            // Write JSON file to disk
-            await writeJsonFile(outputFilePath, jsonContent);
-          } catch (error) {
-            console.error(`Failed to process ${inputFilePath}:`, error);
-          } finally {
-            // Ensure the temporary file is deleted
-            await unlink(tempOutputFilePath);
-          }
-        }
+        await Promise.all(result.outputFiles.map(transformFileToJson));
       });
     },
   };
 }
 
-// Helper function to ensure directory existence and write file
-async function writeJsonFile(filePath: string, content: string) {
-  const dir = path.dirname(filePath);
-  await mkdir(dir, { recursive: true });
-  await writeFile(filePath, content);
+async function transformFileToJson(file: OutputFile) {
+  const { dir, name } = path.parse(file.path);
+  const outputFilePath = path.resolve(dir, `${name}.json`);
+
+  try {
+    const moduleURI = `data:text/javascript,${encodeURIComponent(file.text)}`;
+    const { default: exportedData = {} } = await import(moduleURI);
+
+    // Serialize the default export to JSON
+    const jsonContent = JSON.stringify(exportedData, null, 2);
+
+    // Write JSON file to disk
+    await mkdir(path.dirname(outputFilePath), { recursive: true });
+    await writeFile(outputFilePath, jsonContent);
+  } catch (error) {
+    console.error(`Failed to process ${file.path}:`, error);
+  }
+}
+
+function validateBuildOptions({ write, bundle, format }: BuildOptions) {
+  if (write) {
+    throw new Error(
+      `esbuild config: "write" must be set to false. Add "write: false" to your config.`
+    );
+  }
+
+  if (!bundle) {
+    throw new Error(
+      `esbuild config: "bundle" must be set to true. Add "bundle: true" to your config.`
+    );
+  }
+
+  if (format !== "esm") {
+    throw new Error(
+      `esbuild config: "format" must be set to "esm". Add "format: 'esm'" to your config.`
+    );
+  }
 }
