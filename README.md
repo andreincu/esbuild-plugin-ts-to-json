@@ -28,8 +28,8 @@ Define an esbuild configuration:
 import { build } from "esbuild";
 
 await build({
-  entryPoints,
-  outdir,
+  entryPoints: ["src/manifest.ts"],
+  outdir: "build",
   bundle: true,
   write: false,
   format: "esm",
