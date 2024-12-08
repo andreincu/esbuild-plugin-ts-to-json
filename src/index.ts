@@ -1,4 +1,4 @@
-import { BuildOptions, OutputFile, Plugin, PluginBuild } from "esbuild";
+import type { BuildOptions, OutputFile, Plugin, PluginBuild } from "esbuild";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
