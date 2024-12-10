@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "name": "esbuild-plugin-ts-to-json",
   "description": "A plugin for esbuild to transform TypeScript files to JSON format. Specific for generating manifest.json.",
   "author": "Andrei Iancu",
